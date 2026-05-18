@@ -18,3 +18,8 @@ export type ZephyrTestResult = {
   executionTime?: string;
   executionDate?: string;
 };
+
+export type ZephyrTestAttachment = {
+  testCaseKey: string;
+  attachment: string;
+};

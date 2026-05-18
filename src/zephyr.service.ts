@@ -1,8 +1,10 @@
-import { ZephyrTestResult } from './../types/zephyr.types';
+import { ZephyrTestResult, ZephyrTestAttachment } from './../types/zephyr.types';
 import axios, { Axios, AxiosError } from 'axios';
 import { ZephyrOptions } from '../types/zephyr.types';
 import { inspect } from 'util';
 import { bold, green } from 'picocolors';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 function isAxiosError(error: any): error is AxiosError {
   return error.isAxiosError === true;
@@ -83,4 +85,53 @@ export class ZephyrService {
       throw new Error(`\nUnknown error: ${error}`);
     }
   }
+
+  async uploadAttachments(items: ZephyrTestAttachment[], testrunKey: string): Promise<string[]> {
+    let idsAttachments: string[] = [];
+    const URL = `${this.url}/testrun/${testrunKey}/attachments`;
+    for (const item of items) {
+      try {
+        const filePath = path.resolve(__dirname, item.attachment);
+        const fileBuffer = readFileSync(filePath);
+        // Convert the Buffer to a clean Uint8Array wrapper
+        const uint8Array = new Uint8Array(fileBuffer);
+        const formData = new FormData();
+        const fileBlob = new Blob([uint8Array], { type: 'image/png' });
+        formData.append('file', fileBlob, `${item.testCaseKey}.png`);
+        const response = await this.axios.post(URL, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        if (response.status !== 201) throw new Error(`${response.status} - Failed to upload attachment`);
+
+        const {
+          data: { id },
+        } = response;
+
+        console.log(`${bold(green(`✅ Uploaded attachment ${id}`))}`);
+
+        idsAttachments.push(response.data.id);
+      } catch (error) {
+        if (isAxiosError(error)) {
+          console.error(`Config: ${inspect(error.config)}`);
+
+          if (error.response) {
+            throw new Error(
+              `\nStatus: ${error.response.status} \nHeaders: ${inspect(error.response.headers)} \nData: ${inspect(error.response.data)}`,
+            );
+          } else if (error.request) {
+            throw new Error(`The request was made but no response was received. \n Error: ${inspect(error.toJSON())}`);
+          } else {
+            throw new Error(`Something happened in setting up the request that triggered an Error\n : ${inspect(error.message)}`);
+          }
+        }
+
+        throw new Error(`\nUnknown error: ${error}`);
+      }
+    }
+    return idsAttachments;
+  }
+
 }
