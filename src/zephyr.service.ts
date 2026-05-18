@@ -31,13 +31,14 @@ export class ZephyrService {
     this.password = options.password!;
     this.basicAuthToken = Buffer.from(`${this.user}:${this.password}`).toString('base64');
     this.authorizationToken = options.authorizationToken ?? this.basicAuthToken;
+    const authPrefix = options.authorizationToken ? 'Bearer' : 'Basic';
     this.projectKey = options.projectKey;
 
     this.axios = axios.create({
       baseURL: this.url,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${this.authorizationToken}`,
+        Authorization: `${authPrefix} ${this.authorizationToken}`,
       },
       ...options,
     });
