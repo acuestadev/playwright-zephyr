@@ -49,7 +49,6 @@ class ZephyrReporter implements Reporter {
       this.checkAttachments(test, testCaseKey);
     } else if (hasProjectKeyTag) {
       const projectKeyTags = test.tags.filter(tag => tag.includes(this.projectKey));
-      console.log("\nTags containing 'this.projectKey':");
       for (const tag of projectKeyTags) {
         const [, projectName] = test.titlePath();
         const testCaseKey = tag.replace(/^@/, '');
